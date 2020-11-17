@@ -52,3 +52,27 @@ post: dashboards/$(DASHBOARD)
 		-H "Authorization: Bearer $${GRAFANA_API_TOKEN}" \
 		-d "$$(jq '{ "dashboard": ., "overwrite": true }' dashboards/$(DASHBOARD))" \
 		$(GRAFANA_URL)/api/dashboards/db
+
+.drone/drone.yml: ## Write out YAML drone configuration
+.drone/drone.yml: .drone/drone.cue .drone/dump_tool.cue $(wildcard cue.mod/**/github.com/drone/drone-yaml/yaml/*.cue)
+	cue fmt $<
+	cue vet -c $<
+	cue cmd dump ./.drone/ > $@
+	drone lint $@
+
+.PHONY: haproxy-mixin-build-image
+haproxy-mixin-build-image: ## Build the haproxy-mixin-build-image
+haproxy-mixin-build-image: build-image.nix common.nix $(wildcard nix/*nix)
+	docker load --input $$(nix-build build-image.nix)
+
+.PHONY: inspect-build-image
+inspect-build-image: ## Inspect the haproxy-mixin-build-image
+inspect-build-image:
+	docker save jdbgrafana/haproxy-mixin-build-image | tar x --to-stdout --wildcards '*/layer.tar' | tar tv | sort -nr -k3
+
+dist:
+	mkdir -p dist
+
+dist/haproxy-mixin.tar.gz: ## Create a release of the haproxy-mixin artifacts
+dist/haproxy-mixin.tar.gz: $(wildcard dashboards/*.json) $(wildcard alerts/*yaml) $(wildcard rules/*.yaml) $(wildcard img/*.png) | dist
+	tar -c -f $@ $^
