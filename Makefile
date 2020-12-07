@@ -11,11 +11,13 @@ help: ## Display this help
 help:
 	@awk 'BEGIN {FS = ": ##"; printf "Usage:\n  make <target>\n\nTargets:\n"} /^[a-zA-Z0-9_\.\-\/%]+: ##/ { printf "  %-45s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
+JSONNET_FILES := $(shell find . -name 'vendor' -prune -o -name '*.jsonnet' -print -o -name '*.libsonnet' -print)
+JSONNET := jsonnet -J vendor
+
 .PHONY: fmt
 fmt: ## Format all files
 fmt:
-	cue fmt ./...
-	jsonnetfmt -i mixin.libsonnet
+	for file in $(JSONNET_FILES); do jsonnetfmt -i "$${file}"; done
 
 .PHONY: lint
 lint: ## Lint mixin
@@ -26,38 +28,23 @@ build: ## Build rules and dashboards
 build: alerts/general.yaml rules/rules.yaml dashboards/haproxy-overview.json dashboards/haproxy-backend.json dashboards/haproxy-frontend.json dashboards/haproxy-server.json
 
 alerts/general.yaml: ## Export the general alert rules as YAML
-alerts/general.yaml: alerts/general.cue $(wildcard cue.mod/**/github.com/prometheus/prometheus/pkg/rulefmt/*.cue)
-	cue fmt $<
-	cue vet -c $<
-	cue export --out=yaml $< > $@
+alerts/general.yaml: alerts/general.jsonnet
+	$(MAKE) fmt JSONNET_FILES="$<"
+	$(JSONNET) $< > $@
 
 rules/rules.yaml: ## Export recording rules rules as YAML
-rules/rules.yaml: rules/rules.cue $(wildcard cue.mod/**/github.com/prometheus/prometheus/pkg/rulefmt/*.cue)
-	cue fmt $<
-	cue vet -c $<
-	cue export --out=yaml $< > $@
+rules/rules.yaml: rules/rules.jsonnet
+	$(MAKE) fmt JSONNET_FILES="$<"
+	$(JSONNET) $< > $@
 
 dashboards/%.json: ## Export a Grafana dashboard definition as JSON
-dashboards/%.json: $(wildcard dashboards/*.cue) $(wildcard grafana/*.cue) $(wildcard grafana/panel/*.cue)
-	cue export -e 'dashboards["$(subst dashboards/,,$@)"]' ./dashboards > $@
-
-GRAFANA_URL := http://localhost:$(GRAFANA_PORT)
-DASHBOARD   := haproxy-backend.json
-.PHONY: post
-post: ## Update a Grafana dashboard from a JSON file
-post: dashboards/$(DASHBOARD)
-	curl \
-		-H 'Content-Type: application/json' \
-		-H 'Accept: application/json' \
-		-H "Authorization: Bearer $${GRAFANA_API_TOKEN}" \
-		-d "$$(jq '{ "dashboard": ., "overwrite": true }' dashboards/$(DASHBOARD))" \
-		$(GRAFANA_URL)/api/dashboards/db
+dashboards/%.json: dashboards/%.jsonnet dashboards/dashboards.libsonnet | $(wildcard vendor/github.com/grafana/dashboard-spec/_gen/7.0/**/*.libsonnet)
+	$(MAKE) fmt JSONNET_FILES="$?"
+	$(JSONNET) $< > $@
 
 .drone/drone.yml: ## Write out YAML drone configuration
-.drone/drone.yml: .drone/drone.cue .drone/dump_tool.cue $(wildcard cue.mod/**/github.com/drone/drone-yaml/yaml/*.cue)
-	cue fmt $<
-	cue vet -c $<
-	cue cmd dump ./.drone/ > $@
+.drone/drone.yml: .drone/drone.jsonnet
+	drone jsonnet --source $< --target $@ --format --stream
 	drone lint $@
 
 .PHONY: haproxy-mixin-build-image
