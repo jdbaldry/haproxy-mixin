@@ -851,10 +851,12 @@
             "type": "datasource"
          },
          {
+            "allvalue": ".+",
             "datasource": "$datasource",
             "definition": "label_values(haproxy_process_start_time_seconds, instance)",
             "hide": 0,
             "includeAll": true,
+            "label": "instance",
             "multi": true,
             "name": "instance",
             "query": "label_values(haproxy_process_start_time_seconds, instance)",
@@ -865,10 +867,12 @@
             "useTags": false
          },
          {
+            "allvalue": ".+",
             "datasource": "$datasource",
             "definition": "label_values(haproxy_process_start_time_seconds, job)",
             "hide": 0,
             "includeAll": true,
+            "label": "job",
             "multi": true,
             "name": "job",
             "query": "label_values(haproxy_process_start_time_seconds, job)",
