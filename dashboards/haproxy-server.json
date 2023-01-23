@@ -518,10 +518,12 @@
             "type": "datasource"
          },
          {
+            "allvalue": ".+",
             "datasource": "$datasource",
             "definition": "label_values(haproxy_process_start_time_seconds, instance)",
             "hide": 0,
             "includeAll": true,
+            "label": "instance",
             "multi": true,
             "name": "instance",
             "query": "label_values(haproxy_process_start_time_seconds, instance)",
@@ -532,10 +534,12 @@
             "useTags": false
          },
          {
+            "allvalue": ".+",
             "datasource": "$datasource",
             "definition": "label_values(haproxy_process_start_time_seconds, job)",
             "hide": 0,
             "includeAll": true,
+            "label": "job",
             "multi": true,
             "name": "job",
             "query": "label_values(haproxy_process_start_time_seconds, job)",
@@ -546,10 +550,12 @@
             "useTags": false
          },
          {
+            "allvalue": ".+",
             "datasource": "$datasource",
             "definition": "label_values(haproxy_backend_status, proxy)",
             "hide": 0,
             "includeAll": true,
+            "label": "backend",
             "multi": true,
             "name": "backend",
             "query": "label_values(haproxy_backend_status, proxy)",
@@ -560,10 +566,12 @@
             "useTags": false
          },
          {
+            "allvalue": ".+",
             "datasource": "$datasource",
             "definition": "label_values(haproxy_server_status, server)",
             "hide": 0,
             "includeAll": true,
+            "label": "server",
             "multi": true,
             "name": "server",
             "query": "label_values(haproxy_server_status, server)",
